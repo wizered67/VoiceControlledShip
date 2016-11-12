@@ -145,7 +145,7 @@ public class Game implements ApplicationListener {
         guiStage.act(Gdx.graphics.getDeltaTime());
         direction = (float) Math.toDegrees(MathUtils.lerpAngle((float) Math.toRadians(direction),
                 (float) Math.toRadians(targetDirection), 0.01f));
-        System.out.println(direction);
+        //System.out.println(direction);
         stage.act(Gdx.graphics.getDeltaTime());
         stage.getCamera().position.set(new Vector3(player.getX() + player.getWidth() / 2,
                 player.getY() + player.getHeight() / 2, 0));
