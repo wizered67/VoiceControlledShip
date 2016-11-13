@@ -5,4 +5,5 @@ package com.mygdx.game;
  */
 public interface Ship {
     boolean getShield();
+    void getHit(int damage);
 }

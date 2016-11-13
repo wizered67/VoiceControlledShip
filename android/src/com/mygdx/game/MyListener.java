@@ -92,13 +92,24 @@ public class MyListener implements RecognitionListener {
         System.out.println(data);
         for (String element : data) {
             Log.d("result", "result " + element);
-            Command c = Command.parseCommand(element);
-            if (c != null) {
-                gdx.execute(c);
-                Gdx.app.log("result", element);
-                System.out.println(element);
-                gdx.setTextFieldText(element);
-                return;
+            String commands[] = element.split("and");
+            if (commands.length > 1) {
+                for (String com : commands) {
+                    Command c = Command.parseCommand(com);
+                    if (c != null) {
+                        gdx.execute(c);
+                        System.out.println(com);
+                    }
+                }
+            } else {
+                Command c = Command.parseCommand(element);
+                if (c != null) {
+                    gdx.execute(c);
+                    Gdx.app.log("result", element);
+                    System.out.println(element);
+                    gdx.setTextFieldText(element);
+                    return;
+                }
             }
         }
         gdx.setTextFieldText(data.get(0));

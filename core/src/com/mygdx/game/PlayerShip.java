@@ -60,4 +60,9 @@ public class PlayerShip extends Actor implements Ship {
         return shield;
     }
 
+    @Override
+    public void getHit(int damage) {
+
+    }
+
 }
