@@ -4,19 +4,22 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 
 /**
  * Created by Adam on 11/12/2016.
  */
-public class EnemyShip extends Actor implements Ship {
+public class EnemyShip extends Actor implements Ship, Collidable {
     boolean shield;
     TextureRegion texture;
     float scale;
     protected Animation animation;
     private float timer = 0;
+    Rectangle boundingRectangle;
     public EnemyShip() {
         shield = false;
+        boundingRectangle = new Rectangle();
     }
 
     @Override
@@ -39,5 +42,10 @@ public class EnemyShip extends Actor implements Ship {
 
     public void setShield(boolean status) {
         shield = status;
+    }
+
+    @Override
+    public Rectangle getBoundingRectangle() {
+        return boundingRectangle;
     }
 }

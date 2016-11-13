@@ -7,6 +7,9 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Circle;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.utils.Array;
 
@@ -18,12 +21,14 @@ public class PlayerShip extends Actor implements Ship {
     private Animation animation;
     private boolean shield;
     private float timer = 0;
+    public Rectangle boundingBox;
 
     public PlayerShip() {
         shield = false;
         TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("playerShip.pack"));
         Array<TextureAtlas.AtlasRegion> ship = atlas.findRegions("Frame");
         animation = new Animation(0.1f, ship);
+        boundingBox = new Rectangle();
         //texture = new TextureRegion(new Texture("mic.jpg"));
 
         //setWidth(texture.getRegionWidth());
@@ -36,6 +41,9 @@ public class PlayerShip extends Actor implements Ship {
         texture = animation.getKeyFrame(timer, true);
         setWidth(texture.getRegionWidth() * 2);
         setHeight(texture.getRegionHeight() * 2);
+        boundingBox.setPosition(getX() + getWidth() / 3, getY() + getHeight() / 3);
+        boundingBox.setWidth(getWidth() / 3);
+        boundingBox.setHeight(getHeight() / 3);
     }
 
     @Override

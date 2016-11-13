@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.*;
@@ -48,6 +49,7 @@ public class Game implements ApplicationListener {
     final float HIGH_SPEED = 8;
     float speed = LOW_SPEED;
     TextureRegion laserTexture;
+    TextureRegion smallLaserTexture;
     Vector2 scannedLocation;
     Timer.Task removeLocation;
     Timer.Task stopBurst;
@@ -107,6 +109,7 @@ public class Game implements ApplicationListener {
         direction = 0;
         targetDirection = 0;
         laserTexture = new TextureRegion(new Texture(Gdx.files.internal("laser.png")));
+        smallLaserTexture = new TextureRegion(new Texture(Gdx.files.internal("small laser.png")));
         background = new Texture(Gdx.files.internal("background.png"));
         background.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
         /*
@@ -265,8 +268,14 @@ public class Game implements ApplicationListener {
                     shapes.circle(a.getX() + a.getWidth() / 2, a.getY() + a.getHeight() / 2, a.getWidth() / 2);
                 }
             }
+            if (a instanceof Collidable) {
+                Rectangle rect = ((Collidable) a).getBoundingRectangle();
+                shapes.rect(rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
+            }
         }
         int guiBarHeight = Gdx.graphics.getHeight() / 32;
+        shapes.setColor(1, 1, 1, 0.3f);
+        shapes.rect(player.boundingBox.x, player.boundingBox.y, player.boundingBox.getWidth(), player.boundingBox.getHeight());
         shapes.end();
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setProjectionMatrix(guiStage.getCamera().combined);
@@ -281,6 +290,14 @@ public class Game implements ApplicationListener {
         shapes.rect(0, Gdx.graphics.getHeight()  - guiBarHeight * 2, Gdx.graphics.getWidth() / 2 * ((float)energy / MAX_ENERGY), guiBarHeight);
         shapes.end();
         //System.out.println(Gdx.graphics.getWidth() / 3 * ((float) health / MAX_HEALTH));
+    }
+
+    public TextureRegion getLaserTexture(boolean large) {
+        if (large) {
+            return laserTexture;
+        } else {
+            return smallLaserTexture;
+        }
     }
 
     public void execute(Command c) {
