@@ -2,10 +2,14 @@ package com.mygdx.game;
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -36,6 +40,18 @@ public class Game implements ApplicationListener {
     float targetDirection;
     int health;
     int energy;
+    final int MAX_HEALTH = 100;
+    final int MAX_ENERGY = 100;
+    final float LOW_SPEED = 5;
+    final float MEDIUM_SPEED = 10;
+    final float HIGH_SPEED = 15;
+    float speed = LOW_SPEED;
+    TextureRegion laserTexture;
+
+    ShaderProgram defaultShader;
+    ShaderProgram backgroundShader;
+
+    Texture background;
 
 
     public Game(ActionResolver actionResolver) { this.actionResolver = actionResolver; }
@@ -80,7 +96,10 @@ public class Game implements ApplicationListener {
         shapes = new ShapeRenderer();
         Gdx.input.setInputProcessor(guiStage);
         direction = 0;
-        targetDirection = 90;
+        targetDirection = 0;
+        laserTexture = new TextureRegion(new Texture(Gdx.files.internal("laser.png")));
+        background = new Texture(Gdx.files.internal("background.png"));
+        background.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
         /*
         textField = new TextField("\t...", skin);
         textField.setWidth(Gdx.graphics.getWidth() - Gdx.graphics.getWidth() / 10.0f);
@@ -102,11 +121,28 @@ public class Game implements ApplicationListener {
         stage.addActor(player);
         player.setPosition(stage.getWidth() / 2 - player.getWidth() / 2, player.getHeight() * 4);
         player.setShield(true);
+        health = MAX_HEALTH;
+        energy = MAX_ENERGY;
+
+        stage.addActor(new Laser(laserTexture, true, 70));
 
         EnemyShip enemy = new EnemyShip();
         stage.addActor(enemy);
         enemy.setPosition(3 * stage.getWidth() / 4, stage.getHeight() / 2);
         enemy.setShield(true);
+
+        ShaderProgram.pedantic = false;
+        defaultShader = SpriteBatch.createDefaultShader();
+        final String vertexShader = Gdx.files.internal("vertexshader.glsl").readString();
+        final String fragmentShader =Gdx.files.internal("fragmentshader.glsl").readString();// DefaultShader.getDefaultFragmentShader();
+        backgroundShader = new ShaderProgram(vertexShader, fragmentShader);
+        if (backgroundShader.isCompiled()){
+            System.out.println("Background Shader compiled successfully.");
+        }
+        else {
+            System.out.println(backgroundShader.getLog());
+        }
+
         //actionResolver.showToast("Tap the mic icon to speak", 5000);
     }
 
@@ -140,19 +176,37 @@ public class Game implements ApplicationListener {
 
     @Override
     public void render() {
-        gl.glClearColor(0f, 0f, 0f, 1);
+        gl.glClearColor(0f, 1f, 0f, 1);
         gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         guiStage.act(Gdx.graphics.getDeltaTime());
         direction = (float) Math.toDegrees(MathUtils.lerpAngle((float) Math.toRadians(direction),
-                (float) Math.toRadians(targetDirection), 0.01f));
-        System.out.println(direction);
+                (float) Math.toRadians(targetDirection), 0.02f));
+        //System.out.println(direction);
+        float x = (float)Math.cos(Math.toRadians(360 - direction + 90));
+        float y = (float)Math.sin(Math.toRadians(360 - direction + 90));
+        player.moveBy(speed * x, speed * y);
         stage.act(Gdx.graphics.getDeltaTime());
         stage.getCamera().position.set(new Vector3(player.getX() + player.getWidth() / 2,
                 player.getY() + player.getHeight() / 2, 0));
+        //System.out.println(player.getX() + player.getWidth() / 2 + ", " + (player.getY() + player.getHeight() / 2));
+        //System.out.println(stage.getCamera().position.x + "` "  + stage.getCamera().position.y);
         stage.getCamera().up.set(0, 1, 0);
         stage.getCamera().direction.set(0, 0, -1);
+        player.setOrigin(player.getWidth() / 2, player.getHeight() / 2);
         player.setRotation(-direction);
         ((OrthographicCamera)stage.getCamera()).rotate(direction);
+        stage.getCamera().update();
+        backgroundShader.begin();
+        backgroundShader.setUniformf("offset", player.getX() / background.getWidth(), player.getY() / background.getHeight());
+        backgroundShader.end();
+        stage.getBatch().setShader(backgroundShader);
+        stage.getBatch().begin();
+        stage.getBatch().draw(background, stage.getCamera().position.x - Gdx.graphics.getWidth() * 2,
+                stage.getCamera().position.y - Gdx.graphics.getHeight() * 2,
+                Gdx.graphics.getWidth() * 4, Gdx.graphics.getHeight() * 4, 0, 0,
+                Gdx.graphics.getWidth() * 2 / background.getWidth(), Gdx.graphics.getHeight() * 2 / background.getHeight());
+        stage.getBatch().end();
+        stage.getBatch().setShader(defaultShader);
         stage.draw();
         guiStage.draw();
         shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -162,11 +216,100 @@ public class Game implements ApplicationListener {
                 if (((Ship) a).getShield()) {
                     Gdx.gl.glEnable(GL20.GL_BLEND);
                     shapes.setColor(0, 0, 1, 0.3f);
-                    shapes.circle(a.getX() + a.getWidth() / 2, a.getY() + a.getHeight() / 2, a.getWidth());
+                    shapes.circle(a.getX() + a.getWidth() / 2, a.getY() + a.getHeight() / 2, a.getWidth() / 2);
                 }
             }
         }
+        int guiBarHeight = Gdx.graphics.getHeight() / 32;
         shapes.end();
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setProjectionMatrix(guiStage.getCamera().combined);
+        shapes.setColor(Color.GRAY);
+        shapes.rect(0, Gdx.graphics.getHeight() - guiBarHeight, Gdx.graphics.getWidth() / 2, guiBarHeight);
+        shapes.setColor(Color.RED);
+        shapes.rect(0, Gdx.graphics.getHeight() - guiBarHeight, Gdx.graphics.getWidth() / 2 * ((float)health / MAX_HEALTH), guiBarHeight);
+
+        shapes.setColor(Color.GRAY);
+        shapes.rect(0, Gdx.graphics.getHeight() - guiBarHeight * 2, Gdx.graphics.getWidth() / 2, guiBarHeight);
+        shapes.setColor(Color.BLUE);
+        shapes.rect(0, Gdx.graphics.getHeight()  - guiBarHeight * 2, Gdx.graphics.getWidth() / 2 * ((float)energy / MAX_ENERGY), guiBarHeight);
+        shapes.end();
+        //System.out.println(Gdx.graphics.getWidth() / 3 * ((float) health / MAX_HEALTH));
+    }
+
+    public void execute(Command c) {
+        switch (c.commandType) {
+            case TURN:
+                doTurn(c);
+                break;
+            case MOVE:
+                doMove(c);
+                break;
+            case FIRE:
+                doFire(c);
+                break;
+            case SCAN:
+                doScan(c);
+                break;
+            case SHIELD:
+                doShield(c);
+                break;
+            case REPAIR:
+                doRepair(c);
+                break;
+        }
+    }
+
+    public void doTurn(Command c) {
+        String[] args = c.data;
+        if (args[0] == null) {
+            return;
+        }
+        targetDirection = Integer.parseInt(args[0]);
+        System.out.println("New direction is " + targetDirection);
+    }
+
+    public void doMove(Command c) {
+        String spd = c.data[0];
+        if (spd.equalsIgnoreCase("low")) {
+            speed = LOW_SPEED;
+        } else if (spd.equalsIgnoreCase("high")) {
+            speed = HIGH_SPEED;
+        } else {
+            speed = MEDIUM_SPEED;
+        }
+    }
+
+    public void doFire(Command c) {
+        String[] args = c.data;
+        if (args[0] == null) {
+            return;
+        }
+        int dir = Integer.parseInt(args[0]);
+        Laser laser = new Laser(laserTexture, true, dir);
+        laser.setPosition(player.getX(), player.getY());
+        stage.addActor(laser);
+    }
+
+    public void doShield(Command c) {
+        String[] args = c.data;
+        if (args[0] == null) {
+            return;
+        }
+        if (args[0].equalsIgnoreCase("down")) {
+            player.setShield(false);
+        } else {
+            player.setShield(true);
+        }
+        energy -= 10;
+    }
+
+    public void doScan(Command c) {
+
+    }
+
+    public void doRepair(Command c) {
+        health -= 10;
     }
 
     @Override

@@ -91,11 +91,19 @@ public class MyListener implements RecognitionListener {
         ArrayList<String> data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         System.out.println(data);
         for (String element : data) {
-            Log.d(TAG, "result " + element);
+            Log.d("result", "result " + element);
+            Command c = Command.parseCommand(element);
+            if (c != null) {
+                gdx.execute(c);
+                Gdx.app.log("result", element);
+                System.out.println(element);
+                gdx.setTextFieldText(element);
+                return;
+            }
         }
-
-        Gdx.app.log("results", String.valueOf(data.size()));
         gdx.setTextFieldText(data.get(0));
+        //Gdx.app.log("results", String.valueOf(data.size()));
+        //gdx.setTextFieldText(data.get(0));
 
     }
 

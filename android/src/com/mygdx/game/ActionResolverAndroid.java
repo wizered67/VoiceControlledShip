@@ -55,8 +55,8 @@ public class ActionResolverAndroid extends Activity implements ActionResolver {
                 speechRecognizer.setRecognitionListener(new MyListener(gdx, appContext));
 
                 Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
-                i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 10);
                 gdx.shakeMicButton();
                 speechRecognizer.startListening(i);
             }

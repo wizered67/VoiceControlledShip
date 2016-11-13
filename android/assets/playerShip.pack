@@ -1,0 +1,61 @@
+
+playerShip.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+Frame
+  rotate: false
+  xy: 1, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 1
+Frame
+  rotate: false
+  xy: 189, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 2
+Frame
+  rotate: false
+  xy: 189, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 8
+Frame
+  rotate: false
+  xy: 377, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 3
+Frame
+  rotate: false
+  xy: 377, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 7
+Frame
+  rotate: false
+  xy: 565, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 4
+Frame
+  rotate: false
+  xy: 565, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 6
+Frame
+  rotate: false
+  xy: 753, 1
+  size: 186, 175
+  orig: 186, 175
+  offset: 0, 0
+  index: 5
