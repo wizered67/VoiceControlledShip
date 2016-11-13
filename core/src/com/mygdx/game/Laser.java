@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 public class Laser extends Actor {
     boolean playerOwned = false;
     int direction;
-    int speed = 10;
+    int speed = 15;
     TextureRegion texture;
     public Laser(TextureRegion tex, boolean player, int dir) {
         playerOwned = player;

@@ -18,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 
 /**
@@ -36,15 +37,16 @@ public class Game implements ApplicationListener {
     TextField textField;
     MicButton micButton;
     PlayerShip player;
+    Compass compass;
     float direction;
     float targetDirection;
     int health;
     int energy;
     final int MAX_HEALTH = 100;
     final int MAX_ENERGY = 100;
-    final float LOW_SPEED = 5;
-    final float MEDIUM_SPEED = 10;
-    final float HIGH_SPEED = 15;
+    final float LOW_SPEED = 3;
+    //final float MEDIUM_SPEED = 10;
+    final float HIGH_SPEED = 8;
     float speed = LOW_SPEED;
     TextureRegion laserTexture;
 
@@ -62,7 +64,7 @@ public class Game implements ApplicationListener {
 
         public MicButton() {
             setBounds(getX(), getY(), texture.getWidth(), texture.getHeight());
-
+            getColor().a = 0.4f;
             addListener(new InputListener(){
                 @Override
                 public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
@@ -79,9 +81,12 @@ public class Game implements ApplicationListener {
 
         @Override
         public void draw(Batch batch, float parentAlpha) {
+            Color normalColor = batch.getColor();
+            batch.setColor(getColor());
             batch.draw(texture, getX(), getY(), getOriginX(), getOriginY(), getWidth(),
                     getHeight(), getScaleX(), getScaleY(), getRotation(), 0, 0,
                     texture.getWidth(), texture.getHeight(), false, false);
+            batch.setColor(normalColor);
         }
     }
 
@@ -126,7 +131,7 @@ public class Game implements ApplicationListener {
 
         stage.addActor(new Laser(laserTexture, true, 70));
 
-        EnemyShip enemy = new EnemyShip();
+        final EnemyShip enemy = new EnemyShip();
         stage.addActor(enemy);
         enemy.setPosition(3 * stage.getWidth() / 4, stage.getHeight() / 2);
         enemy.setShield(true);
@@ -142,6 +147,18 @@ public class Game implements ApplicationListener {
         else {
             System.out.println(backgroundShader.getLog());
         }
+
+        int delay = 5;
+        Timer.schedule(new Timer.Task(){
+            @Override
+            public void run() {
+                energy = Math.min(MAX_ENERGY, energy + 20);
+
+            }
+        }, delay, delay);
+
+        compass = new Compass();
+        guiStage.addActor(compass);
 
         //actionResolver.showToast("Tap the mic icon to speak", 5000);
     }
@@ -186,15 +203,23 @@ public class Game implements ApplicationListener {
         float y = (float)Math.sin(Math.toRadians(360 - direction + 90));
         player.moveBy(speed * x, speed * y);
         stage.act(Gdx.graphics.getDeltaTime());
-        stage.getCamera().position.set(new Vector3(player.getX() + player.getWidth() / 2,
-                player.getY() + player.getHeight() / 2, 0));
+
+
+       // if (Math.abs(direction % 360 - targetDirection % 360) < 1) {
+            stage.getCamera().position.lerp(new Vector3(player.getX() + Gdx.graphics.getWidth() * x,
+                    player.getY() + Gdx.graphics.getHeight() * y, 0), 0.01f);
+        //} else {
+        //    stage.getCamera().position.lerp(new Vector3(player.getX() + Gdx.graphics.getWidth() * x,
+        //            player.getY() + Gdx.graphics.getHeight() * y, 0), 0.005f);
+       // }
         //System.out.println(player.getX() + player.getWidth() / 2 + ", " + (player.getY() + player.getHeight() / 2));
         //System.out.println(stage.getCamera().position.x + "` "  + stage.getCamera().position.y);
         stage.getCamera().up.set(0, 1, 0);
         stage.getCamera().direction.set(0, 0, -1);
         player.setOrigin(player.getWidth() / 2, player.getHeight() / 2);
         player.setRotation(-direction);
-        ((OrthographicCamera)stage.getCamera()).rotate(direction);
+        compass.setRotation(-direction);
+        //((OrthographicCamera)stage.getCamera()).rotate(direction);
         stage.getCamera().update();
         backgroundShader.begin();
         backgroundShader.setUniformf("offset", player.getX() / background.getWidth(), player.getY() / background.getHeight());
@@ -265,7 +290,8 @@ public class Game implements ApplicationListener {
         if (args[0] == null) {
             return;
         }
-        targetDirection = Integer.parseInt(args[0]);
+        targetDirection += Integer.parseInt(args[0]);
+        targetDirection %= 360;
         System.out.println("New direction is " + targetDirection);
     }
 
@@ -275,20 +301,18 @@ public class Game implements ApplicationListener {
             speed = LOW_SPEED;
         } else if (spd.equalsIgnoreCase("high")) {
             speed = HIGH_SPEED;
-        } else {
-            speed = MEDIUM_SPEED;
         }
     }
 
     public void doFire(Command c) {
-        String[] args = c.data;
-        if (args[0] == null) {
-            return;
+        if (energy >= 20) {
+            //int dir = (int)targetDirection + Integer.parseInt(args[0]);
+            //dir %= 360;
+            Laser laser = new Laser(laserTexture, true,(int) direction);
+            laser.setPosition(player.getX(), player.getY());
+            stage.addActor(laser);
+            energy = Math.max(0, energy - 20);
         }
-        int dir = Integer.parseInt(args[0]);
-        Laser laser = new Laser(laserTexture, true, dir);
-        laser.setPosition(player.getX(), player.getY());
-        stage.addActor(laser);
     }
 
     public void doShield(Command c) {
@@ -299,9 +323,12 @@ public class Game implements ApplicationListener {
         if (args[0].equalsIgnoreCase("down")) {
             player.setShield(false);
         } else {
-            player.setShield(true);
+            if (energy >= 20) {
+                player.setShield(true);
+                energy = Math.max(0, energy - 20);
+            }
         }
-        energy -= 10;
+
     }
 
     public void doScan(Command c) {
@@ -309,7 +336,10 @@ public class Game implements ApplicationListener {
     }
 
     public void doRepair(Command c) {
-        health -= 10;
+        if (energy >= 80) {
+            energy = Math.max(0, energy - 80);
+            health = Math.min(MAX_HEALTH, health + 30);
+        }
     }
 
     @Override

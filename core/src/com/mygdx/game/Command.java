@@ -8,12 +8,14 @@ import java.util.regex.Pattern;
  */
 public class Command {
     enum CommandType {
-        TURN("(?:turn|rotate|face)\\s+([0-3]?[0-9]?[0-9])"),
-        FIRE("(?i)(?:fire|shoot|attack)\\s+([0-3]?[0-9]?[0-9])"),
-        MOVE("(?i)(?:engines|engine|thruster|thrusters)\\s+(low|medium|high)"),
-        SHIELD("(?i)(?:shield|shields)\\s+(up|down)"),
-        SCAN("(?i)scan\\s+([0-3]?[0-9]?[0-9])"),
-        REPAIR("(?i)(?:repair|fix)");
+        TURN("(?i).*(?:turn|rotate|face)\\s+(?:.*\\s+)*(-?[0-3]?[0-9]?[0-9]).*"),
+        FIRE("(?i).*(?:fire|shoot|attack).*"),
+        MOVE("(?i).*(?:engines|engine|thruster|thrusters).*"),
+        SHIELD("(?i).*(?:shield|shields)\\s+(?:.*\\s+)*(up|down).*"),
+        SCAN("(?i).*scan.*"),
+        REPAIR("(?i).*(?:repair|fix).*"),
+        MISSILE("(?i).*(?:missile|torpedo|rocket)\\s+(?:.*\\s+)*(-?[0-3]?[0-9]?[0-9]).*"),
+        CEASEFIRE("(?i).*(?:ceasefire|stop|hold your fire|hold fire).*");
 
         CommandType(String regex) {
             pattern = Pattern.compile(regex);

@@ -34,8 +34,8 @@ public class PlayerShip extends Actor implements Ship {
     public void act(float delta) {
         timer += delta;
         texture = animation.getKeyFrame(timer, true);
-        setWidth(texture.getRegionWidth() * 3);
-        setHeight(texture.getRegionHeight() * 3);
+        setWidth(texture.getRegionWidth() * 2);
+        setHeight(texture.getRegionHeight() * 2);
     }
 
     @Override
