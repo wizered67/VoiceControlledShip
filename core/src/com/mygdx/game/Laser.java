@@ -14,14 +14,15 @@ public class Laser extends Actor {
     boolean playerOwned = false;
     int direction;
     int speed = 15;
+    float scale = 4f;
     TextureRegion texture;
     public Laser(TextureRegion tex, boolean player, int dir) {
         playerOwned = player;
         direction = dir;
         texture = tex;//new TextureRegion(new Texture(Gdx.files.internal("laser.png")));
         setRotation(360 - direction);
-        setWidth(texture.getRegionWidth() * 8);
-        setHeight(texture.getRegionHeight() * 8);
+        setWidth(texture.getRegionWidth() * scale);
+        setHeight(texture.getRegionHeight() * scale);
         setOrigin(getWidth() / 2, getHeight() / 2);
     }
     @Override

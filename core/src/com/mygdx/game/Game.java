@@ -6,9 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -18,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 
@@ -49,11 +48,16 @@ public class Game implements ApplicationListener {
     final float HIGH_SPEED = 8;
     float speed = LOW_SPEED;
     TextureRegion laserTexture;
+    Vector2 scannedLocation;
+    Timer.Task removeLocation;
+    Timer.Task stopBurst;
 
     ShaderProgram defaultShader;
     ShaderProgram backgroundShader;
 
     Texture background;
+    Animation smallEnemyAnimation;
+    Animation largeEnemyAnimation;
 
 
     public Game(ActionResolver actionResolver) { this.actionResolver = actionResolver; }
@@ -125,16 +129,10 @@ public class Game implements ApplicationListener {
         player = new PlayerShip();
         stage.addActor(player);
         player.setPosition(stage.getWidth() / 2 - player.getWidth() / 2, player.getHeight() * 4);
-        player.setShield(true);
         health = MAX_HEALTH;
         energy = MAX_ENERGY;
 
         stage.addActor(new Laser(laserTexture, true, 70));
-
-        final EnemyShip enemy = new EnemyShip();
-        stage.addActor(enemy);
-        enemy.setPosition(3 * stage.getWidth() / 4, stage.getHeight() / 2);
-        enemy.setShield(true);
 
         ShaderProgram.pedantic = false;
         defaultShader = SpriteBatch.createDefaultShader();
@@ -160,6 +158,23 @@ public class Game implements ApplicationListener {
         compass = new Compass();
         guiStage.addActor(compass);
 
+        TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("SmallEnemy.pack"));
+        Array<TextureAtlas.AtlasRegion> ship = atlas.findRegions("Frame");
+        smallEnemyAnimation = new Animation(0.1f, ship);
+
+        TextureAtlas largeAtlas = new TextureAtlas(Gdx.files.internal("LargeEnemy.pack"));
+        Array<TextureAtlas.AtlasRegion> largeShip = largeAtlas.findRegions("Frame");
+        largeEnemyAnimation = new Animation(0.1f, largeShip);
+
+        final SmallEnemy enemy = new SmallEnemy(smallEnemyAnimation, this);
+        stage.addActor(enemy);
+        enemy.setPosition(3 * stage.getWidth() / 4, stage.getHeight() / 2);
+
+        final LargeEnemy enemy2 = new LargeEnemy(largeEnemyAnimation, this);
+        stage.addActor(enemy2);
+        enemy2.setPosition(stage.getWidth() / 2, 3 * stage.getHeight() / 4);
+        enemy2.setShield(true);
+
         //actionResolver.showToast("Tap the mic icon to speak", 5000);
     }
 
@@ -180,8 +195,8 @@ public class Game implements ApplicationListener {
 
     @Override
     public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
-        guiStage.getViewport().update(width, height, true);
+        stage.getViewport().update(width, height);
+        guiStage.getViewport().update(width, height);
     }
 
     @Override
@@ -234,8 +249,14 @@ public class Game implements ApplicationListener {
         stage.getBatch().setShader(defaultShader);
         stage.draw();
         guiStage.draw();
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setProjectionMatrix(stage.getCamera().combined);
+        if (scannedLocation != null) {
+            shapes.begin(ShapeRenderer.ShapeType.Line);
+            shapes.setColor(Color.RED);
+            shapes.line(player.getX() + player.getWidth() / 2, player.getY() + player.getHeight() / 2, scannedLocation.x, scannedLocation.y);
+            shapes.end();
+        }
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (Actor a : stage.getActors()) {
             if (a instanceof Ship) {
                 if (((Ship) a).getShield()) {
@@ -282,7 +303,17 @@ public class Game implements ApplicationListener {
             case REPAIR:
                 doRepair(c);
                 break;
+            case CEASEFIRE:
+                doCeasefire(c);
+                break;
+            case MISSILE:
+                doMissile(c);
+                break;
         }
+    }
+
+    public PlayerShip getPlayer() {
+        return player;
     }
 
     public void doTurn(Command c) {
@@ -290,17 +321,27 @@ public class Game implements ApplicationListener {
         if (args[0] == null) {
             return;
         }
+        args[0] = args[0].replaceAll(":", "");
+        args[0] = args[0].replaceAll("to", "2");
         targetDirection += Integer.parseInt(args[0]);
         targetDirection %= 360;
         System.out.println("New direction is " + targetDirection);
     }
 
     public void doMove(Command c) {
-        String spd = c.data[0];
-        if (spd.equalsIgnoreCase("low")) {
-            speed = LOW_SPEED;
-        } else if (spd.equalsIgnoreCase("high")) {
+        if (energy >= 60) {
+            if (stopBurst != null) {
+                stopBurst.cancel();
+            }
             speed = HIGH_SPEED;
+            stopBurst = new Timer.Task() {
+                @Override
+                public void run() {
+                    speed = LOW_SPEED;
+                }
+            };
+            Timer.schedule(stopBurst, 3.5f);
+            energy = Math.max(0, energy - 60);
         }
     }
 
@@ -332,7 +373,34 @@ public class Game implements ApplicationListener {
     }
 
     public void doScan(Command c) {
-
+        if (energy >= 25) {
+            Actor nearestEnemy = null;
+            float distance = Float.MAX_VALUE;
+            for (Actor a : stage.getActors()) {
+                if (a instanceof EnemyShip) {
+                    float dist = Vector2.dst2(a.getX(), a.getY(), player.getX(), player.getY());
+                    if (dist < distance) {
+                        distance = dist;
+                        nearestEnemy = a;
+                    }
+                }
+            }
+            if (nearestEnemy != null) {
+                scannedLocation = new Vector2(nearestEnemy.getX() + nearestEnemy.getWidth() / 2,
+                        nearestEnemy.getY() + nearestEnemy.getHeight() / 2);
+                if (removeLocation != null) {
+                    removeLocation.cancel();
+                }
+                removeLocation = new Timer.Task() {
+                    @Override
+                    public void run() {
+                        scannedLocation = null;
+                    }
+                };
+                Timer.schedule(removeLocation, 10);
+            }
+            energy = Math.max(0, energy - 25);
+        }
     }
 
     public void doRepair(Command c) {
@@ -340,6 +408,15 @@ public class Game implements ApplicationListener {
             energy = Math.max(0, energy - 80);
             health = Math.min(MAX_HEALTH, health + 30);
         }
+    }
+
+    public void doMissile(Command c) {
+        String[] args = c.data;
+        args[0] = args[0].replace(":", "");
+    }
+
+    public void doCeasefire(Command c) {
+
     }
 
     @Override
