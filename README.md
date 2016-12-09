@@ -1,4 +1,4 @@
-# Starship Captain
+# Starship Captain (Fall 2016)
 ##Overview
 Made during the 2016 CalHacks Hackathon at UC Berkeley, "Starship Captain" was an attempt to make a game with a unique control scheme. The game, developed with [LibGDX](https://libgdx.badlogicgames.com/), runs on Android phones and tablets and is controlled entirely through voice commands. The idea behind the game is to recreate the experience that the captain of a starship has in sci-fi movies like Star Wars and Star Trek. While the captain does not have direct control over any part of the ship, it is their job to issue commands to the people in charge of various systems on board. 
 
